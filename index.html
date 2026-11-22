@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B2A4A">
+<title>Herramientas de supervisión · Osinergmin</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{background:#0B2A4A;color:#fff;min-height:100vh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{display:flex;align-items:center;gap:12px;padding:18px 20px}
+.logo{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+header small{display:block;color:rgba(255,255,255,.6);font-size:12px}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:560px;width:100%;margin:0 auto;padding:10px 20px 40px}
+h1{font-size:30px;line-height:1.15;margin:0 0 6px;font-weight:700}
+.sub{color:rgba(255,255,255,.65);margin:0 0 30px;font-size:15px}
+a.opt{display:flex;align-items:center;gap:16px;background:#fff;color:#0B2A4A;text-decoration:none;border-radius:16px;padding:20px 18px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .12s}
+a.opt:active{transform:scale(.98)}
+.ic{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex:none}
+.ic.a{background:#E3EDF9}.ic.b{background:#FDECEA}
+.opt b{display:block;font-size:18px;margin-bottom:3px}
+.opt span{font-size:13px;color:#616161;line-height:1.35}
+.opt .go{margin-left:auto;font-size:26px;color:#1E5AA8}
+footer{text-align:center;color:rgba(255,255,255,.45);font-size:12px;padding:14px}
+</style>
+</head>
+<body>
+<header><div class="logo">OSI</div><div><b>OSINERGMIN</b><small>Oficina Regional Loreto</small></div></header>
+<main>
+  <h1>Herramientas de supervisión</h1>
+  <p class="sub">Elija el tipo de supervisión</p>
+  <a class="opt" href="medidores.html">
+    <div class="ic a">⚡</div>
+    <div><b>Cambio de medidores</b><span>Contraste y reemplazo de medidores · Actas F7</span></div>
+    <div class="go">›</div>
+  </a>
+  <a class="opt" href="seguridad.html">
+    <div class="ic b">⚠</div>
+    <div><b>Seguridad pública</b><span>Deficiencias P‑228 · Panel fotográfico · Mapa de observaciones</span></div>
+    <div class="go">›</div>
+  </a>
+</main>
+<footer>Funciona sin internet · el fondo del mapa requiere conexión<br><a href="#" onclick="OSI_LOGOUT();return false" style="color:rgba(255,255,255,.6)">Cerrar sesión</a></footer>
+<script>if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
+</body>
+</html>

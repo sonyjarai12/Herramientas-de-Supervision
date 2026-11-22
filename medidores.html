@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSI-SCRCM · Osinergmin</title>
+
+  <!-- ═══ LIBRERÍAS LOCALES: la app funciona SIN INTERNET (trabajo de campo) ═══ -->
+  <link rel="stylesheet" href="vendor/tailwind.css" />
+  <link rel="stylesheet" href="vendor/leaflet.css" />
+  <script src="vendor/leaflet.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/pdf-lib.min.js"></script>
+  <!-- Formato oficial F7-PO241-PE-01-GO7: las actas se escriben SOBRE él -->
+  <script src="vendor/f7-plantilla.js"></script>
+  <script src="vendor/exceljs.min.js"></script>
+  <script src="vendor/f7-plantilla-xlsx.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Respaldo: si falta la carpeta vendor/, se intenta desde CDN -->
+  <script>
+    (function () {
+      var cdn = {
+        L:           'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+        XLSX:        'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js',
+        jspdf:       'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+        html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+      };
+      Object.keys(cdn).forEach(function (g) {
+        if (typeof window[g] === 'undefined') {
+          document.write('<script src="' + cdn[g] + '"><\/script>');
+        }
+      });
+    })();
+  </script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-sm">
+
+<!-- ═══════════════════════════════════════════ TOP BAR ═══════════════════════════════════════════ -->
+<header class="bg-navy text-white px-4 py-3 flex items-center justify-between shadow-lg sticky top-0 z-50">
+  <div class="flex items-center gap-3">
+    <a href="index.html" title="Herramientas de supervisión" style="color:#fff;font-size:28px;line-height:1;padding:0 4px 4px 0;text-decoration:none;font-weight:300">‹</a>
+    <!-- Logo placeholder -->
+    <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold border border-white/20">OSI</div>
+    <div>
+      <div class="font-semibold text-base leading-tight">Supervisión de Medidores</div>
+      <div class="text-white/60 text-xs">Contraste y Reemplazo · Energía Eléctrica</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button onclick="clearSession()" class="text-white/60 hover:text-white text-xs border border-white/20 rounded px-2 py-1 transition" title="Borrar datos guardados en este navegador">Limpiar sesión</button>
+    <span class="hidden sm:block text-white/50 text-xs">OSINERGMIN</span>
+    <div class="w-8 h-8 rounded bg-white/10 border border-white/20 flex items-center justify-center">
+      <svg class="w-4 h-4 text-white/80" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm-1 17.93V18a1 1 0 012 0v1.93A8.001 8.001 0 014.07 13H6a1 1 0 010 2H4.07A8.001 8.001 0 0111 19.93zm0-15.86A8.001 8.001 0 014.07 11H6a1 1 0 010-2H4.07A8.001 8.001 0 0111 4.07V6a1 1 0 01-2 0V4.07zm2 0V6a1 1 0 01-2 0V4.07A8.001 8.001 0 0119.93 11H18a1 1 0 010 2h1.93A8.001 8.001 0 0113 19.93V18a1 1 0 012 0v1.93A8.001 8.001 0 0119.93 13H18a1 1 0 010-2h1.93A8.001 8.001 0 0113 4.07z"/></svg>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ BARRA DE FILTROS ═══════════════════════════════ -->
+<section class="bg-white border-b border-gray-200 shadow-sm px-3 py-2.5">
+  <div class="max-w-7xl mx-auto space-y-2.5">
+
+    <!-- Archivo + semanas: en celular van uno debajo del otro -->
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="btn-blue cursor-pointer flex items-center gap-1 text-xs py-2 px-3 rounded-lg shrink-0">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Cargar muestra
+        <input type="file" id="excelInput" accept=".xlsx,.xls" class="hidden" />
+      </label>
+      <span id="fileLabel" class="text-xs text-muted truncate flex-1 min-w-0">Ningún archivo</span>
+
+      <!-- Semanas: botón que despliega las casillas -->
+      <div class="relative shrink-0">
+        <button id="btnSemanas" onclick="togglePanelSemanas()"
+          class="flex items-center gap-1.5 text-xs py-2 px-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-50">
+          <span class="text-muted">Semanas:</span>
+          <span id="btnSemanasTxt" class="font-semibold text-navy">Todas</span>
+          <span class="text-muted text-[10px]">▼</span>
+        </button>
+        <div id="panelSemanas" class="hidden absolute right-0 mt-1 z-[1200] bg-white border border-gray-300 rounded-lg shadow-lg p-2 min-w-[190px] max-h-[55vh] overflow-y-auto">
+          <div id="listaSemanas" class="space-y-0.5"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtro geográfico + medidor -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <select id="filtroDepartamento" class="input-select text-xs" onchange="cambiarFiltroGeo('departamento')">
+        <option value="">Todo departamento</option>
+      </select>
+      <select id="filtroProvincia" class="input-select text-xs" onchange="cambiarFiltroGeo('provincia')">
+        <option value="">Toda provincia</option>
+      </select>
+      <select id="filtroDistrito" class="input-select text-xs" onchange="cambiarFiltroGeo('distrito')">
+        <option value="">Todo distrito</option>
+      </select>
+      <select id="meterFilter" class="input-select text-xs" onchange="aplicarFiltroEstado()" title="Filtrar por estado">
+        <option value="all">Todo estado</option>
+        <option value="pending">Solo pendientes</option>
+        <option value="done">Solo realizados</option>
+      </select>
+    </div>
+
+    <div id="resumenFiltro" class="hidden text-xs text-muted"></div>
+
+    <!-- Selector de medidor: lo reemplaza la agenda, se conserva para el código -->
+    <div style="display:none">
+      <select id="weekSelect" class="input-select" disabled><option value="">—</option></select>
+      <select id="meterSelect" class="input-select" disabled><option value="">—</option></select>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ MAIN CONTENT ═══════════════════════════════════════════ -->
+<main class="max-w-7xl mx-auto px-4 py-4 space-y-4">
+
+  <!-- LOCATION SEGMENT -->
+  <section id="locationSection" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hidden">
+    <h2 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Ubicación del Punto</h2>
+    <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+      <div class="flex-1 space-y-1">
+        <div class="flex items-start gap-2">
+          <svg class="w-4 h-4 text-blue mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <div>
+            <p id="locAddress" class="font-medium text-gray-800">—</p>
+            <p id="locDistrict" class="text-xs text-muted">—</p>
+            <p id="locDistance" class="text-xs font-semibold mt-1"></p>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="btnMyLoc" class="btn-blue text-xs py-1.5 px-3 flex items-center gap-1" onclick="centerOnMe()">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2m0 16v2m10-10h-2M4 12H2"/></svg>
+          Mi ubicación
+        </button>
+        <button id="btnMaps" class="btn-blue text-xs py-1.5 px-3 flex items-center gap-1" onclick="openGoogleMaps()">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+          Cómo llegar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPI CARDS -->
+  <section id="kpiSection" class="hidden">
+    <div class="grid grid-cols-3 gap-3">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-muted" id="kpiTotal">0</div>
+        <div class="text-xs text-muted mt-0.5">Total</div>
+      </div>
+      <div class="bg-white rounded-xl border border-red-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-danger" id="kpiPending">0</div>
+        <div class="text-xs text-muted mt-0.5">Pendientes</div>
+      </div>
+      <div class="bg-white rounded-xl border border-green-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-success" id="kpiDone">0</div>
+        <div class="text-xs text-muted mt-0.5">Atendidos</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABS: Operación / Supervisores -->
+  <section id="tabsSection" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="flex border-b border-gray-200">
+      <button id="tabOperacion" class="flex-1 py-3 px-4 text-xs font-semibold text-center border-b-2 border-blue text-blue transition" onclick="switchTab('operacion')">
+        Operación
+      </button>
+      <button id="tabSupervisores" class="flex-1 py-3 px-4 text-xs font-semibold text-center border-b-2 border-transparent text-muted hover:text-gray-800 transition" onclick="switchTab('supervisores')">
+        Supervisores
+      </button>
+    </div>
+
+    <!-- Operación Tab Content -->
+    <div id="tabOperacionContent" class="p-4">
+      <!-- ACTION BUTTONS -->
+      <section id="actionsSection" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <h2 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Gestión de Supervisión</h2>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <button id="btnForm" class="action-btn btn-blue disabled:opacity-40" onclick="openFormModal()" disabled>
+        <span class="text-lg">📋</span>
+        <span class="text-xs leading-tight">Formulario<br>(opcional)</span>
+      </button>
+      <button id="btnActa" class="action-btn btn-blue" onclick="abrirModalActasF7()" title="Genera las actas F7-PO241-PE-01-GO7 de los medidores realizados (5 medidores por acta)">
+        <span class="text-lg">📝</span>
+        <span class="text-xs leading-tight">Actas F7<br>(5 x acta)</span>
+      </button>
+      <label class="action-btn btn-navy cursor-pointer col-span-2" title="Sube el Excel con los datos del medidor reemplazante, la aferición y el control de sticker; se cruzan por N° de suministro">
+        <span class="text-lg">📥</span>
+        <span class="text-xs leading-tight">Importar base de reemplazos (medidor nuevo + aferición)</span>
+        <input type="file" id="baseInput" accept=".xlsx,.xls" class="hidden" onchange="importarBaseReemplazos(this)" />
+      </label>
+      <!-- Firmar Actas y Generar Actas: ocultos por ahora (flujo antiguo).
+           Para reactivarlos, quitar la clase "hidden" de este contenedor. -->
+      <div id="accionesOcultas" class="col-span-2 grid grid-cols-2 gap-2" style="display:none">
+        <button id="btnSign" class="action-btn btn-blue disabled:opacity-40" onclick="openSignModal()" disabled>
+          <span class="text-lg">✍️</span>
+          <span class="text-xs leading-tight">Firmar<br>Actas</span>
+        </button>
+        <button id="btnGenerate" class="action-btn btn-blue disabled:opacity-40" onclick="openGenerateModal()" disabled>
+          <span class="text-lg">📄</span>
+          <span class="text-xs leading-tight">Generar<br>Actas</span>
+        </button>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+      <button class="action-btn btn-navy" onclick="downloadBackup()">
+        <span class="text-lg">💾</span>
+        <span class="text-xs leading-tight">Backup de<br>Progreso</span>
+      </button>
+      <label class="action-btn btn-navy cursor-pointer">
+        <span class="text-lg">📂</span>
+        <span class="text-xs leading-tight">Importar<br>Backup</span>
+        <input type="file" id="backupInput" accept=".json" class="hidden" />
+      </label>
+      <button class="action-btn btn-navy" onclick="openResumeModal()">
+        <span class="text-lg">↩️</span>
+        <span class="text-xs leading-tight">Retomar<br>Manualmente</span>
+      </button>
+    </div>
+    <div class="grid grid-cols-1 gap-2 mt-2">
+      <button class="action-btn cursor-pointer" style="background:#1D6F42;color:white;" onclick="exportEstadoExcel()">
+        <span class="text-lg">📊</span>
+        <span class="text-xs leading-tight">Exportar Excel de estado (Realizado / No realizado)</span>
+      </button>
+    </div>
+      </section>
+    </div>
+
+    <!-- Supervisores Tab Content -->
+    <div id="tabSupervisoresContent" class="p-4 hidden">
+      <h3 class="text-sm font-semibold text-gray-800 mb-4">Registrar Supervisores</h3>
+      <div class="space-y-3 mb-4">
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-semibold text-muted uppercase">Nombre del Supervisor</label>
+          <input type="text" id="supervisorName" class="input-field" placeholder="Ej: Juan Pérez" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-semibold text-muted uppercase">Código del Supervisor</label>
+          <input type="text" id="supervisorCode" class="input-field" placeholder="Ej: SUP-001" />
+        </div>
+        <button onclick="addSupervisor()" class="btn-blue py-2 px-4 rounded-lg text-sm w-full">
+          Agregar Supervisor
+        </button>
+      </div>
+
+      <div class="border-t border-gray-200 pt-4">
+        <h4 class="text-xs font-semibold text-muted uppercase mb-3">Supervisores Registrados</h4>
+        <div id="supervisorsList" class="space-y-2">
+          <p class="text-xs text-muted">No hay supervisores registrados aún.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENDA: la muestra agrupada por fecha programada, encima del mapa -->
+  <section id="agendaSection" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
+    <h2 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Muestra por fecha programada</h2>
+    <!-- Semanas visibles: se pueden ver varias a la vez -->
+    <div id="chipsSemanas" class="flex flex-wrap items-center gap-1.5 mb-3"></div>
+    <div id="agendaContent"></div>
+  </section>
+
+  <!-- MAP -->
+  <section id="mapSection" class="hidden bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <!-- Estado del medidor: justo encima del mapa, para cambiarlo sin
+         perder de vista el punto que se está atendiendo. -->
+    <div class="px-3 pt-3 pb-2 border-b border-gray-100">
+      <div class="flex items-center justify-between mb-2 gap-3">
+        <h2 class="text-xs font-semibold text-muted uppercase tracking-wide whitespace-nowrap">Estado del medidor</h2>
+        <div id="quickStatusHint" class="text-xs text-muted text-right">Selecciona un medidor para marcar su estado.</div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btnStatusDone" class="action-btn disabled:opacity-40" style="background:#2E7D32;color:white;" onclick="quickSetStatus('done')" disabled>
+          <span class="text-lg">✓</span>
+          <span class="text-xs leading-tight">Realizado</span>
+        </button>
+        <button id="btnStatusPending" class="action-btn disabled:opacity-40" style="background:#D32F2F;color:white;" onclick="quickSetStatus('pending')" disabled>
+          <span class="text-lg">✕</span>
+          <span class="text-xs leading-tight">No realizado</span>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 gap-2 mt-2">
+        <button id="btnUnmark" class="action-btn btn-navy hidden disabled:opacity-40" onclick="unmarkMeter()" disabled title="Quitar este medidor de los realizados">
+          <span class="text-lg">↺</span>
+          <span class="text-xs leading-tight">Desmarcar medidor</span>
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 px-3 py-2 border-b border-gray-100 text-xs">
+      <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:#D32F2F"></span>Pendiente</span>
+      <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:#2E7D32"></span>Realizado</span>
+      <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:#1E5AA8;border:2px solid white;box-shadow:0 0 0 1px #1E5AA8"></span>Tu ubicación</span>
+    </div>
+    <div id="map" style="height: 340px; width: 100%;"></div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════════════ MODAL: EXCEL LOADED ══════════════════════════════ -->
+<div id="modalExcel" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="text-center">
+      <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+        <svg class="w-7 h-7 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3 class="text-base font-semibold text-gray-800 mb-1">Excel cargado</h3>
+      <p id="modalExcelMsg" class="text-xs text-muted mb-4">Archivo procesado correctamente.</p>
+      <button class="btn-blue w-full py-2 rounded-lg" onclick="closeModal('modalExcel')">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: WEEK SUMMARY ══════════════════════════════ -->
+<div id="modalWeek" class="modal-overlay hidden">
+  <div class="modal-box max-w-sm">
+    <h3 class="text-base font-semibold text-gray-800 mb-3">Resumen de Semana</h3>
+    <div id="modalWeekContent" class="space-y-2 text-sm text-gray-700 mb-4"></div>
+    <button class="btn-blue w-full py-2 rounded-lg" onclick="closeModal('modalWeek')">OK</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: FORM ══════════════════════════════ -->
+<div id="modalForm" class="modal-overlay hidden">
+  <div class="modal-box max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-gray-800">Completar Formulario</h3>
+      <button onclick="closeModal('modalForm')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="formContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: SIGNATURES ══════════════════════════════ -->
+<div id="modalSign" class="modal-overlay hidden">
+  <div class="modal-box max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-gray-800">Firmar Actas</h3>
+      <button onclick="closeModal('modalSign')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="signContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: GENERATE ══════════════════════════════ -->
+<div id="modalGenerate" class="modal-overlay hidden">
+  <div class="modal-box max-w-sm">
+    <h3 class="text-base font-semibold text-gray-800 mb-3">Generar Actas PDF</h3>
+    <div id="generateContent" class="space-y-2 text-sm text-gray-700 mb-4"></div>
+    <div class="flex gap-2">
+      <button onclick="closeModal('modalGenerate')" class="flex-1 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50">Cancelar</button>
+      <button onclick="generatePDFs()" class="flex-1 btn-blue py-2 rounded-lg text-sm">Sí, generar PDFs</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: WEEK COMPLETE ══════════════════════════════ -->
+<div id="modalWeekComplete" class="modal-overlay hidden">
+  <div class="modal-box max-w-sm text-center">
+    <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+      <svg class="w-7 h-7 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h3 class="text-base font-semibold text-gray-800 mb-1">¡Semana completada!</h3>
+    <p class="text-xs text-muted mb-4">Todos los medidores han sido atendidos. ¿Deseas guardar un backup de progreso?</p>
+    <div class="flex gap-2">
+      <button onclick="closeModal('modalWeekComplete')" class="flex-1 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50">Más tarde</button>
+      <button onclick="downloadBackup(); closeModal('modalWeekComplete')" class="flex-1 btn-blue py-2 rounded-lg text-sm">Sí, guardar backup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: ATTENTION SAVED ══════════════════════════════ -->
+<div id="modalAttention" class="modal-overlay hidden">
+  <div class="modal-box max-w-sm text-center">
+    <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+      <svg class="w-7 h-7 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h3 class="text-base font-semibold text-gray-800 mb-1">Atención guardada</h3>
+    <p class="text-xs text-muted mb-4">Medidor registrado correctamente.</p>
+    <button class="btn-blue w-full py-2 rounded-lg" onclick="closeModal('modalAttention'); checkWeekComplete()">OK</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: RESUME ══════════════════════════════ -->
+<div id="modalResume" class="modal-overlay hidden">
+  <div class="modal-box max-w-sm">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-gray-800">Retomar Manualmente</h3>
+      <button onclick="closeModal('modalResume')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="resumeContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ MODAL: EXPORT EXCEL ══════════════════════════════ -->
+<div id="modalExport" class="modal-overlay hidden">
+  <div class="modal-box max-w-sm">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-base font-semibold text-gray-800">Exportar Excel de Estado</h3>
+      <button onclick="closeModal('modalExport')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <p class="text-xs text-muted mb-3">Se generará un Excel con cada medidor marcado como <span class="text-success font-semibold">REALIZADO</span> o <span class="text-danger font-semibold">NO REALIZADO</span>.</p>
+    <div id="exportContent" class="space-y-2 mb-4"></div>
+    <div class="flex flex-col gap-2">
+      <button onclick="doExportExcel('current')" class="btn-blue py-2 rounded-lg text-sm">Solo la semana actual</button>
+      <button onclick="doExportExcel('all')" class="btn-navy py-2 rounded-lg text-sm">Todas las semanas</button>
+      <button onclick="closeModal('modalExport')" class="py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ MODAL: IMPORTAR BASE DE REEMPLAZOS ═════════════ -->
+<div id="modalBase" class="modal-overlay hidden">
+  <div class="modal-box max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-gray-800">Importar base de reemplazos</h3>
+      <button onclick="closeModal('modalBase')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="baseContent" class="space-y-4"></div>
+  </div>
+</div>
+
+<!-- ═════════════ MODAL: ALTA MANUAL DE MEDIDOR ═════════════ -->
+<div id="modalAlta" class="modal-overlay hidden">
+  <div class="modal-box max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-gray-800">Agregar medidor a la muestra</h3>
+      <button onclick="closeModal('modalAlta')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="altaContent" class="space-y-4"></div>
+  </div>
+</div>
+
+<!-- ═════════════ MODAL: CHECKS AL MARCAR REALIZADO ═════════════ -->
+<div id="modalChecks" class="modal-overlay hidden">
+  <div class="modal-box max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="checksTitle" class="text-base font-semibold text-gray-800">Datos de la inspección</h3>
+      <button onclick="closeModal('modalChecks')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="checksContent" class="space-y-4"></div>
+  </div>
+</div>
+
+<!-- ═════════════════════ MODAL: ACTAS F7 (5 medidores por acta) ═════════════════════ -->
+<div id="modalActasF7" class="modal-overlay hidden">
+  <div class="modal-box w-full max-w-[95vw] max-h-[92vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="actasF7Title" class="text-base font-semibold text-gray-800">Actas F7</h3>
+      <button onclick="closeModal('modalActasF7')" class="text-muted hover:text-gray-800 text-xl leading-none">×</button>
+    </div>
+    <div id="actasF7Content" class="space-y-4"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ TOAST ══════════════════════════════ -->
+<div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg hidden z-[9999] max-w-xs"></div>
+
+<!-- PDF Preview (hidden) -->
+<div id="pdfTemplate" class="hidden absolute -top-[9999px] left-0 w-[794px]"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

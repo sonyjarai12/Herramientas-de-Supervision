@@ -1,0 +1,270 @@
+/* ───────────── OSI-SCRCM Global Styles ───────────── */
+
+:root {
+  --navy:   #0B2A4A;
+  --blue:   #1E5AA8;
+  --danger: #D32F2F;
+  --success:#2E7D32;
+  --muted:  #616161;
+}
+
+* { box-sizing: border-box; }
+
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+/* ─── Buttons ─── */
+.btn-blue {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  font-weight: 500;
+}
+.btn-blue:hover:not(:disabled) { background: #174d97; }
+.btn-blue:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-navy {
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-weight: 500;
+}
+.btn-navy:hover { background: #0a1f36; }
+
+/* ─── Action buttons ─── */
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  border-radius: 8px;
+  text-align: center;
+  gap: 4px;
+  min-height: 72px;
+  transition: opacity 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Selects / Inputs ─── */
+.input-select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #1E5AA820; }
+.input-select:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
+
+.input-field {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-field:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #1E5AA820; }
+.input-field[readonly] { background: #f9fafb; color: #6b7280; }
+
+/* ─── Modals ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-box {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from { transform: translateY(12px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ─── Form fields inside modals ─── */
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.form-section { font-size: 11px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 0 6px; border-bottom: 1px solid #e5e7eb; margin-bottom: 12px; }
+
+/* ─── Signature canvas ─── */
+.sig-canvas {
+  border: 1.5px dashed #d1d5db;
+  border-radius: 8px;
+  background: #fafafa;
+  width: 100%;
+  cursor: crosshair;
+  display: block;
+  touch-action: none;
+}
+
+/* ─── Status badge ─── */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.badge-pending   { background:#FEE2E2; color:#B91C1C; }
+.badge-done      { background:#D1FAE5; color:#065F46; }
+.badge-progress  { background:#FEF3C7; color:#92400E; }
+.badge-final     { background:#DBEAFE; color:#1E40AF; }
+
+/* ─── Map ─── */
+.leaflet-container { 
+  font-family: inherit; 
+  z-index: 1 !important; 
+}
+.leaflet-top, .leaflet-bottom {
+  z-index: 400 !important;
+}
+.leaflet-popup-content { font-size: 12px; }
+.leaflet-control-container {
+  z-index: 400 !important;
+}
+
+/* ─── Acta page (for PDF) ─── */
+.acta-page {
+  width: 794px;
+  min-height: 1123px;
+  padding: 40px 56px;
+  background: white;
+  font-family: 'Times New Roman', serif;
+  font-size: 11pt;
+  color: #000;
+}
+.acta-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0B2A4A; padding-bottom: 10px; margin-bottom: 16px; }
+.acta-title { font-size: 13pt; font-weight: 700; color: #0B2A4A; text-align: center; text-transform: uppercase; }
+.acta-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.acta-table td, .acta-table th { border: 1px solid #ccc; padding: 5px 8px; font-size: 10pt; }
+.acta-table th { background: #E8EEF7; font-weight: 700; text-align: center; }
+.acta-sig-block { display: flex; justify-content: space-around; margin-top: 40px; }
+.acta-sig { text-align: center; width: 220px; }
+.acta-sig img { height: 60px; object-fit: contain; border-bottom: 1px solid #000; width: 100%; padding-bottom: 4px; margin-bottom: 4px; }
+.acta-sig .sig-name { font-size: 9pt; font-weight: 700; }
+.acta-sig .sig-role { font-size: 9pt; }
+
+/* ─── Toast ─── */
+#toast { transition: opacity 0.25s; }
+
+/* ─── Responsive tweaks ─── */
+@media (max-width: 640px) {
+  .action-btn { font-size: 11px; }
+  .modal-box { padding: 18px; }
+}
+
+/* ─── Verify button states ─── */
+.verify-success { background: var(--success) !important; }
+.verify-fail    { background: #9E9E9E !important; }
+
+/* ─── Acta nav indicator ─── */
+.acta-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.acta-step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.acta-step-dot.active { background: var(--blue); color: white; }
+.acta-step-dot.done   { background: var(--success); color: white; }
+
+/* ─── Range table ─── */
+.range-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.range-table th, .range-table td { padding: 6px 10px; border: 1px solid #e5e7eb; text-align: center; }
+.range-table th { background: #F1F5F9; font-weight: 600; color: var(--navy); font-size: 11px; }
+
+/* ─── Botones SÍ/NO del formulario de checks ─────────────────── */
+.chk-btn {
+  min-width: 46px;
+  padding: 5px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #fff;
+  color: #616161;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.chk-btn:hover { background: #f3f4f6; }
+.chk-on-si {
+  background: #2E7D32;
+  border-color: #2E7D32;
+  color: #fff;
+}
+.chk-on-no {
+  background: #D32F2F;
+  border-color: #D32F2F;
+  color: #fff;
+}
+
+/* styles.css se carga después de Tailwind, y .action-btn usa display:flex.
+   Sin esto, un botón con la clase .hidden seguiría viéndose. */
+.hidden { display: none !important; }
+
+/* ─── Chips de semanas visibles ──────────────────────────────── */
+.chip-sem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #fff;
+  color: #616161;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.chip-sem:hover { background: #f3f4f6; }
+.chip-on {
+  background: #1E5AA8;
+  border-color: #1E5AA8;
+  color: #fff;
+}
+.chip-num {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: .75;
+}

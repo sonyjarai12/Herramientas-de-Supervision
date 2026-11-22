@@ -1,0 +1,7 @@
+// Caché sin conexión: guarda la app completa la primera vez que se abre con internet
+const CACHE='herramientas-supervision-202611211937';
+const FILES=["./", "app.js", "auth.js", "index.html", "medidores.html", "seguridad.html", "seguridad/app.js", "seguridad/styles.css", "seguridad/suministros-loreto.js", "styles.css", "vendor/docx.iife.js", "vendor/exceljs.min.js", "vendor/f7-plantilla-xlsx.js", "vendor/f7-plantilla.js", "vendor/html2canvas.min.js", "vendor/images/layers-2x.png", "vendor/images/layers.png", "vendor/images/marker-icon-2x.png", "vendor/images/marker-icon.png", "vendor/images/marker-shadow.png", "vendor/jspdf.umd.min.js", "vendor/jszip.min.js", "vendor/leaflet.css", "vendor/leaflet.js", "vendor/pdf-lib.min.js", "vendor/tailwind.css", "vendor/xlsx.full.min.js"];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==location.origin)return;
+ e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cp))}return res})))});

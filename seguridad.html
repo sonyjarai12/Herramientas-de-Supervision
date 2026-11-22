@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B2A4A">
+<title>Seguridad pública · P-228 · Osinergmin</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="seguridad/styles.css">
+</head>
+<body>
+<div id="fatal" class="fatal" hidden></div>
+<header class="top">
+  <a class="home" href="index.html" title="Herramientas de supervisión">‹</a>
+  <div class="brand" id="supBtn">Seguridad pública · P‑228<small id="supName">—</small></div>
+  <button class="chip" id="sedChip">SED: —</button>
+</header>
+
+
+<main>
+<!-- REGISTRAR -->
+<section class="view" id="v-reg">
+  <div id="bkBanner" class="banner bk" hidden></div>
+  <div id="editBanner" class="banner" hidden></div>
+  <div class="card">
+    <label style="margin-top:0">Tipo de instalación</label>
+    <div class="seg" id="tipoSeg">
+      <button data-t="CE" class="on">CE<small>Conexión</small></button>
+      <button data-t="EBT">EBT<small>Estructura BT</small></button>
+      <button data-t="CBT">CBT<small>Conductor BT</small></button>
+      <button data-t="MT">MT<small>Media tensión</small></button>
+    </div>
+    <div class="row">
+      <div><label>Cod. SED</label><input id="fSed" list="dlSed" autocapitalize="characters" autocomplete="off" placeholder="0902150E"></div>
+      <div><label>Distrito / localidad</label><input id="fDist" list="dlDist" autocomplete="off"></div>
+    </div>
+    <label id="lCod">N.º de suministro</label>
+    <input id="fCod" inputmode="numeric" autocomplete="off" placeholder="120014251">
+    <div id="a4box"></div>
+    <label>Ubicación (dirección)</label>
+    <input id="fUbic" list="dlUbic" autocomplete="off" placeholder="Se precarga con la base de suministros (editable)">
+  </div>
+  <div class="card">
+    <label style="margin-top:0">Tipificación (P‑228)</label>
+    <select id="fTip"></select>
+    <input id="fTipOtro" placeholder="Código de tipificación" style="margin-top:8px" hidden>
+    <div id="critBox" class="crit" hidden></div>
+    <div id="varBox" class="vars"></div>
+    <div id="dsBox" hidden><label>Distancia medida DS (m)</label><input id="fDS" inputmode="decimal" placeholder="1.90"></div>
+    <label>Descripción de la deficiencia / Comentario</label>
+    <textarea id="fDesc"></textarea>
+    <label>Referencia 1</label>
+    <input id="fRef" value="-">
+  </div>
+  <div class="card">
+    <h3>Fotografía</h3>
+    <div class="foto">
+      <div class="pv" id="pv">Sin foto</div>
+      <div class="bt">
+        <button class="btn acc" id="bCam" type="button">📷 Abrir cámara</button>
+        <button class="btn sec" id="bGal" type="button">🖼 Galería / otra app</button>
+        <label class="tg"><input type="checkbox" id="optStamp"> Estampar fecha y coordenadas</label>
+        <div id="fotoInfo" class="hint"></div>
+      </div>
+    </div>
+    <div id="gpsBox" class="hint"></div>
+    <div class="geo" id="geoBox"></div>
+    <input type="file" id="inCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="inGal" accept="image/*" hidden>
+  </div>
+  <div class="btns">
+    <button class="btn" id="bSave">Guardar deficiencia</button>
+    <button class="btn sec" id="bSaveSame">Guardar y registrar otra en este mismo suministro</button>
+    <div class="btns h" id="editBtns" hidden><button class="btn sec" id="bCancel">Cancelar edición</button><button class="btn er" id="bDel">Eliminar</button></div>
+  </div>
+</section>
+
+<!-- LISTA -->
+<section class="view" id="v-lista" hidden>
+  <div class="card">
+    <div class="row"><select id="flSed"></select><select id="flTipo"><option value="">Todos los tipos</option><option>CE</option><option>EBT</option><option>CBT</option><option>MT</option></select></div>
+    <input id="flQ" placeholder="Buscar código, descripción, dirección…" style="margin-top:8px">
+  </div>
+  <div id="lista"></div>
+</section>
+
+<!-- MAPA OBSERVACIONES -->
+<section class="view" id="v-mapa" hidden>
+  <div class="card" style="padding:10px">
+    <h3 style="margin:0 0 8px">Mapa Observaciones</h3>
+    <div class="row"><select id="mpSrc"><option value="sup">Supervisión actual</option><option value="mias">Todas mis supervisiones</option><option value="todo">Mías + otros supervisores</option><option value="ext">Solo otros supervisores</option></select><select id="mpTipo"><option value="">Todos los tipos</option><option>CE</option><option>EBT</option><option>CBT</option><option>MT</option></select></div>
+    <select id="mpSupv" style="margin-top:8px"><option value="">Todos los supervisores</option></select>
+    <div id="mpInfo" class="hint"></div>
+  </div>
+  <div class="mapwrap"><div id="mapObs"></div></div>
+  <div class="legend"><span><i style="background:#D32F2F"></i>CE</span><span><i style="background:#1E5AA8"></i>EBT</span><span><i style="background:#8E24AA"></i>CBT</span><span><i style="background:#EF6C00"></i>MT</span><span><i class="ext"></i>otro supervisor</span></div>
+  <label class="tg" style="margin:4px 2px 10px"><input type="checkbox" id="mpDrag"> Ajustar ubicación arrastrando mis puntos</label>
+  <div class="card">
+    <h3>Consolidar con otros supervisores</h3>
+    <div class="btns">
+      <button class="btn" id="mpExpMine">⬆ Exportar mis puntos (Excel)</button>
+      <button class="btn sec" id="mpImp">⬇ Importar puntos de otros supervisores</button>
+      <button class="btn sec" id="mpExpAll">📊 Exportar consolidado (Excel + KML)</button>
+    </div>
+    <input type="file" id="inPts" accept=".xlsx,.zip" multiple hidden>
+    <div id="mpExtList" class="hint"></div>
+    <div class="hint">Cada supervisor exporta sus puntos y los envía; en la PC se importan todos (varios a la vez) y se ven juntos aquí. El KML abre en Google Earth.</div>
+  </div>
+</section>
+
+<!-- SUPERVISIONES / RESPALDO -->
+<section class="view" id="v-sup" hidden>
+  <div class="card">
+    <h3>Supervisión actual</h3>
+    <div id="supActual"></div>
+    <div class="btns">
+      <button class="btn acc" id="bBkZip">💾 Respaldar esta supervisión (ZIP con fotos)</button>
+    </div>
+    <div class="hint">El ZIP trae los datos y todas las fotos. Al terminar, elija «Drive» o «WhatsApp» en la ventana de compartir; si no aparece, se guarda en Descargas.</div>
+  </div>
+  <div class="card">
+    <h3>Todas las supervisiones</h3>
+    <div id="supList"></div>
+    <div class="btns h"><button class="btn" id="bSupNew">+ Nueva supervisión</button><button class="btn sec" id="bRestore">Restaurar respaldo (ZIP)</button></div>
+    <input type="file" id="inRestore" accept=".zip,.json" hidden>
+  </div>
+  <div class="card">
+    <h3>Protección de datos de campo</h3>
+    <label class="tg"><input type="checkbox" id="optCopy"> Guardar copia de cada foto en el teléfono (Descargas) al guardar</label>
+    <label class="tg"><input type="checkbox" id="optAutoBk"> Recordar respaldo cada <input id="optBkN" type="number" min="3" max="100" style="width:64px;min-height:30px;padding:3px 6px;display:inline-block"> registros</label>
+    <div id="stStatus" class="hint"></div>
+  </div>
+</section>
+
+<!-- DATOS -->
+<section class="view" id="v-datos" hidden>
+  <div class="card">
+    <h3>Base de suministros (Anexo 4)</h3>
+    <div id="a4status" class="mut"></div>
+    <div class="btns h"><button class="btn sec" id="bA4">Actualizar base (.txt / .xlsx / .csv)</button><button class="btn er sm" id="bA4Clear" hidden>Volver a la base incluida</button></div>
+    <input type="file" id="inA4" accept=".xlsx,.csv,.txt" hidden>
+    <label class="tg"><input type="checkbox" id="optLoreto" checked> Al actualizar, importar solo Loreto (ubigeo 16…)</label>
+  </div>
+  <div class="card">
+    <h3>Subestaciones (SED) de esta supervisión</h3>
+    <div id="sedList"></div>
+    <div class="btns h"><button class="btn sec" id="bSedAdd">+ Agregar SED</button></div>
+  </div>
+  <div class="card">
+    <h3>Catálogo de tipificaciones (P‑228)</h3>
+    <div class="hint" style="margin:0 0 8px">Anexos 3 y 4 de la RCD 228‑2009‑OS/CD. Puede editar el texto corto de cada una.</div>
+    <select id="catFil"><option value="">Todas</option><option>CE</option><option>EBT</option><option>CBT</option><option>MT</option></select>
+    <div id="catList"></div>
+    <div class="btns h"><button class="btn sec" id="bCatAdd">+ Agregar</button><button class="btn sec" id="bCatReset">Restaurar catálogo oficial</button></div>
+  </div>
+</section>
+
+<!-- EXPORTAR -->
+<section class="view" id="v-exp" hidden>
+  <div class="card">
+    <h3>Datos del anexo</h3>
+    <div class="row"><div><label style="margin-top:0">Anexo N.º</label><input id="xAnexo"></div><div><label style="margin-top:0">Título</label><input id="xTitulo"></div></div>
+  </div>
+  <div class="card"><h3>Resumen</h3><div id="resumen"></div></div>
+  <div class="btns">
+    <button class="btn" id="xXlsx">📊 Excel – consolidado por observación</button>
+    <button class="btn" id="xPdf">📄 PDF – Anexo panel fotográfico</button>
+    <button class="btn" id="xDocx">📝 Word – Anexo editable</button>
+    <button class="btn acc" id="xAll">Generar los tres</button>
+  </div>
+  <div class="hint">Orden: Conexiones eléctricas → EBT → CBT → MT; dentro de cada uno, por SED. El Ítem del Excel coincide con el N.º de foto.</div>
+</section>
+</main>
+<nav class="nav">
+  <button data-v="reg" class="on"><span>＋</span>Registrar</button>
+  <button data-v="lista"><span>☰</span>Lista<b id="nCount">0</b></button>
+  <button data-v="mapa"><span>🗺</span>Mapa Observaciones</button>
+  <button data-v="sup"><span>💾</span>Supervisión</button>
+  <button data-v="datos"><span>⚙</span>Datos</button>
+  <button data-v="exp"><span>⬇</span>Exportar</button>
+</nav>
+
+<dialog id="dlg"></dialog>
+<div id="toast"></div>
+<datalist id="dlSed"></datalist><datalist id="dlDist"></datalist><datalist id="dlUbic"></datalist>
+
+<!-- Librerías locales: funciona sin internet (salvo el fondo del mapa) -->
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/exceljs.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/docx.iife.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="seguridad/suministros-loreto.js"></script>
+<script src="seguridad/app.js"></script>
+<script>if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
+</body>
+</html>
